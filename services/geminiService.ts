@@ -2,8 +2,29 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { HealthAnalysis, MedicineInfo, HealthEntry, SymptomAdvice } from "../types";
 
+// Helper to clean AI response and parse JSON safely
+const parseAIResponse = (text: string | undefined) => {
+  if (!text) return {};
+  try {
+    // Remove potential markdown code blocks if the AI includes them
+    const cleaned = text.replace(/```json\n?|```/g, '').trim();
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.error("Failed to parse AI JSON response:", text);
+    throw new Error("The AI returned an invalid format. Please try again.");
+  }
+};
+
+const getAIInstance = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error("API_KEY is missing. Please ensure it is set in your environment variables.");
+  }
+  return new GoogleGenAI({ apiKey });
+};
+
 export const analyzeHealthCheckup = async (entry: HealthEntry): Promise<HealthAnalysis> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = getAIInstance();
   const prompt = `Analyze this user's daily health habits and provide supportive feedback.
   Sleep: ${entry.sleep} hours
   Water: ${entry.water} units
@@ -14,7 +35,7 @@ export const analyzeHealthCheckup = async (entry: HealthEntry): Promise<HealthAn
   `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-flash-latest',
     contents: prompt,
     config: {
       systemInstruction: `You are a Health Assistant AI. Your role is to help users understand their daily health habits and detect unhealthy patterns early.
@@ -24,7 +45,7 @@ export const analyzeHealthCheckup = async (entry: HealthEntry): Promise<HealthAn
       - Use simple, friendly, supportive, and non-judgmental language.
       - If symptoms like fever or persistent pain are mentioned, provide safe non-medical advice (hydration, rest) but prioritize suggesting seeing a doctor.
       
-      OUTPUT FORMAT (JSON):
+      OUTPUT FORMAT (JSON ONLY, NO MARKDOWN):
       {
         "summary": "1-2 lines health summary",
         "possibleConcern": "Description of any concern or null",
@@ -45,13 +66,13 @@ export const analyzeHealthCheckup = async (entry: HealthEntry): Promise<HealthAn
     }
   });
 
-  return JSON.parse(response.text || "{}");
+  return parseAIResponse(response.text);
 };
 
 export const getSymptomAdvice = async (symptomQuery: string): Promise<SymptomAdvice> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = getAIInstance();
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-flash-latest',
     contents: `The user says they have: ${symptomQuery}. Provide safe, non-medical advice.`,
     config: {
       systemInstruction: `You are a Health Assistant AI. A user is reporting a specific symptom. 
@@ -63,7 +84,7 @@ export const getSymptomAdvice = async (symptomQuery: string): Promise<SymptomAdv
       - Provide "Home Care" (e.g., rest, fluids for fever).
       - Provide "When to see a doctor" indicators.
       
-      OUTPUT FORMAT (JSON):
+      OUTPUT FORMAT (JSON ONLY, NO MARKDOWN):
       {
         "symptom": "Cleaned symptom name",
         "homeCare": ["step 1", "step 2"],
@@ -84,11 +105,11 @@ export const getSymptomAdvice = async (symptomQuery: string): Promise<SymptomAdv
     }
   });
 
-  return JSON.parse(response.text || "{}");
+  return parseAIResponse(response.text);
 };
 
 export const scanMedicine = async (medicineName?: string, imageBase64?: string): Promise<MedicineInfo> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = getAIInstance();
   const parts: any[] = [];
   if (medicineName) {
     parts.push({ text: `Explain usage and safety for: ${medicineName}` });
@@ -104,7 +125,7 @@ export const scanMedicine = async (medicineName?: string, imageBase64?: string):
   }
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-image',
+    model: 'gemini-flash-latest',
     contents: { parts },
     config: {
       systemInstruction: `You are a Medicine Information AI. Your role is to explain medicines in simple language and help users take them safely.
@@ -115,7 +136,7 @@ export const scanMedicine = async (medicineName?: string, imageBase64?: string):
       - Always remind users to follow doctor's advice.
       - If medicine is unclear or dangerous, tell user to confirm with doctor/pharmacist.
       
-      OUTPUT FORMAT (JSON):
+      OUTPUT FORMAT (JSON ONLY, NO MARKDOWN):
       {
         "name": "Generic or brand name",
         "usage": "General purpose",
@@ -140,5 +161,5 @@ export const scanMedicine = async (medicineName?: string, imageBase64?: string):
     }
   });
 
-  return JSON.parse(response.text || "{}");
+  return parseAIResponse(response.text);
 };

@@ -7,6 +7,7 @@ const SymptomHelper: React.FC = () => {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SymptomAdvice | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const commonSymptoms = ["Fever", "Headache", "Stomach Ache", "Cough", "Back Pain", "Sore Throat"];
 
@@ -15,12 +16,20 @@ const SymptomHelper: React.FC = () => {
     if (!q.trim()) return;
     
     setLoading(true);
+    setError(null);
     try {
       const data = await getSymptomAdvice(q);
       setResult(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("Failed to get advice. Please try again.");
+      const msg = err.message || "";
+      if (msg.includes("API_KEY")) {
+        setError("Missing API Key. Please ensure the environment variable is set.");
+      } else if (msg.includes("fetch")) {
+        setError("Network error. Please check your internet connection.");
+      } else {
+        setError("Guardian AI is temporarily unavailable. Please try again shortly.");
+      }
     } finally {
       setLoading(false);
     }
@@ -59,7 +68,7 @@ const SymptomHelper: React.FC = () => {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               disabled={loading}
-              className="w-full pl-6 pr-32 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+              className="w-full pl-6 pr-32 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-slate-700"
             />
             <button 
               type="submit"
@@ -69,6 +78,15 @@ const SymptomHelper: React.FC = () => {
               Get Help
             </button>
           </form>
+
+          {error && (
+            <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 text-sm font-medium flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              {error}
+            </div>
+          )}
         </div>
       </div>
 
