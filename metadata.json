@@ -1,0 +1,7 @@
+{
+  "name": "Daily Health Guardian",
+  "description": "An AI-powered daily health habit analyzer and medicine information scanner for maintaining wellness and safety.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
