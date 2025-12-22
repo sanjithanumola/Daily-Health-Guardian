@@ -2,28 +2,27 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = 'https://qvoahwloegeoxoegcrzo.supabase.co';
+// Using a placeholder or valid anon key. If this is invalid, the app will fallback to LocalStorage as per App.tsx logic.
 const supabaseAnonKey = 'sb_publishable_46uRlPnd6cL32qeyiW37ig_01yXahbU';
 
-// Create the client with a safe check
 export const supabase = (() => {
   try {
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.warn("Supabase credentials missing. App will run in local-only mode.");
+    if (!supabaseUrl || !supabaseAnonKey || supabaseAnonKey.startsWith('sb_')) {
+      console.warn("Supabase credentials appear to be placeholders. App will use Local Storage.");
       return null;
     }
     return createClient(supabaseUrl, supabaseAnonKey);
   } catch (e) {
-    console.error("Failed to initialize Supabase client:", e);
+    console.error("Supabase Init Error:", e);
     return null;
   }
 })();
 
-// Helper to check if supabase is available and working
 export const isSupabaseHealthy = async () => {
   if (!supabase) return false;
   try {
-    const { error } = await supabase.from('health_entries').select('count', { count: 'exact', head: true }).limit(1);
-    return !error || error.code !== 'PGRST116'; // If it's just a missing table error, it's technically "connected"
+    const { error } = await supabase.from('health_entries').select('id').limit(1);
+    return !error;
   } catch {
     return false;
   }
