@@ -5,9 +5,10 @@ import { supabase } from '../services/supabase';
 
 interface Props {
   onLogin: (user: User) => void;
+  onGuestMode: () => void;
 }
 
-const Auth: React.FC<Props> = ({ onLogin }) => {
+const Auth: React.FC<Props> = ({ onLogin, onGuestMode }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,6 +18,11 @@ const Auth: React.FC<Props> = ({ onLogin }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!supabase) {
+      setError("Cloud connection unavailable. Please use Guest Mode.");
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     
@@ -47,8 +53,6 @@ const Auth: React.FC<Props> = ({ onLogin }) => {
         if (authError) throw authError;
         
         if (data.user) {
-          // Note: In a real app with email confirm, you'd show a "Check your email" message.
-          // For now, we assume immediate login if possible.
           onLogin({
             email: data.user.email || '',
             name,
@@ -67,7 +71,6 @@ const Auth: React.FC<Props> = ({ onLogin }) => {
       <div className="max-w-md w-full animate-in fade-in zoom-in duration-500">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-200 mx-auto mb-4">
-             {/* Note: User specifically asked to remove G from dashboard in previous turns, but here G is the brand logo */}
             <span className="text-white text-3xl font-bold">G</span>
           </div>
           <h1 className="text-3xl font-black text-slate-900 leading-tight">Health Guardian</h1>
@@ -122,12 +125,6 @@ const Auth: React.FC<Props> = ({ onLogin }) => {
                 />
               </div>
 
-              {isLogin && (
-                <div className="flex justify-end">
-                  <button type="button" className="text-xs font-bold text-indigo-600 hover:text-indigo-700">Forgot Password?</button>
-                </div>
-              )}
-
               <button 
                 type="submit"
                 disabled={loading}
@@ -143,6 +140,15 @@ const Auth: React.FC<Props> = ({ onLogin }) => {
                 )}
               </button>
             </form>
+
+            <div className="mt-4 pt-4 border-t border-slate-50">
+              <button 
+                onClick={onGuestMode}
+                className="w-full py-3 bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all"
+              >
+                Continue as Guest (Local Only)
+              </button>
+            </div>
           </div>
 
           <div className="bg-slate-50 border-t border-slate-100 px-8 py-5 text-center">
@@ -157,10 +163,6 @@ const Auth: React.FC<Props> = ({ onLogin }) => {
             </p>
           </div>
         </div>
-        
-        <p className="mt-8 text-center text-xs text-slate-400 font-medium max-w-xs mx-auto">
-          By continuing, you agree to our Terms of Service and health data privacy policy.
-        </p>
       </div>
     </div>
   );

@@ -13,89 +13,148 @@ const App: React.FC = () => {
   const [history, setHistory] = useState<HealthEntry[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
 
   useEffect(() => {
-    // Initial session check
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser({
-          email: session.user.email || '',
-          name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
-        });
+    // Safety timeout: If Supabase takes > 3 seconds, proceed as Guest
+    const safetyTimeout = setTimeout(() => {
+      if (isAuthLoading) {
+        console.warn("Auth check timed out. Entering offline/guest mode.");
+        setIsAuthLoading(false);
+        setIsOfflineMode(true);
+        loadLocalHistory();
       }
-      setIsAuthLoading(false);
+    }, 3500);
+
+    const checkSession = async () => {
+      if (!supabase) {
+        setIsAuthLoading(false);
+        setIsOfflineMode(true);
+        loadLocalHistory();
+        return;
+      }
+
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        
+        if (session?.user) {
+          setUser({
+            email: session.user.email || '',
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
+          });
+        } else {
+          loadLocalHistory();
+        }
+      } catch (err) {
+        console.error("Auth session check failed:", err);
+        setIsOfflineMode(true);
+        loadLocalHistory();
+      } finally {
+        setIsAuthLoading(false);
+        clearTimeout(safetyTimeout);
+      }
     };
 
     checkSession();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser({
-          email: session.user.email || '',
-          name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
-        });
-      } else {
-        setUser(null);
-        setHistory([]);
-      }
-    });
+    let subscription: any = null;
+    if (supabase) {
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+          setUser({
+            email: session.user.email || '',
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
+          });
+          setIsOfflineMode(false);
+        } else {
+          setUser(null);
+          loadLocalHistory();
+        }
+      });
+      subscription = data.subscription;
+    }
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(safetyTimeout);
+      if (subscription) subscription.unsubscribe();
+    };
   }, []);
 
+  const loadLocalHistory = () => {
+    const savedHistory = localStorage.getItem('health_guardian_history');
+    if (savedHistory) {
+      try {
+        setHistory(JSON.parse(savedHistory));
+      } catch (e) {
+        console.error("Corrupt local storage data", e);
+      }
+    }
+  };
+
   useEffect(() => {
-    if (user) {
+    if (user && !isOfflineMode) {
       fetchHistory();
     }
-  }, [user]);
+  }, [user, isOfflineMode]);
 
   const fetchHistory = async () => {
-    const { data, error } = await supabase
-      .from('health_entries')
-      .select('*')
-      .order('timestamp', { ascending: false })
-      .limit(30);
+    if (!supabase || isOfflineMode) return;
+    try {
+      const { data, error } = await supabase
+        .from('health_entries')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(30);
 
-    if (error) {
-      console.error('Error fetching history:', error);
-      // Fallback to local storage if table doesn't exist yet or error occurs
-      const savedHistory = localStorage.getItem('health_guardian_history');
-      if (savedHistory) setHistory(JSON.parse(savedHistory));
-    } else if (data) {
-      // Map database snake_case or standard fields to the interface
-      const mapped = data.map((d: any) => ({
-        id: d.id,
-        timestamp: d.timestamp,
-        sleep: d.sleep,
-        water: d.water,
-        stress: d.stress,
-        energy: d.energy,
-        discomfort: d.discomfort,
-        foodQuality: d.food_quality || d.foodQuality
-      }));
-      setHistory(mapped);
+      if (error) {
+        console.warn('Supabase fetch error, falling back to local storage:', error);
+        loadLocalHistory();
+      } else if (data) {
+        const mapped = data.map((d: any) => ({
+          id: d.id,
+          timestamp: Number(d.timestamp),
+          sleep: d.sleep,
+          water: d.water,
+          stress: d.stress,
+          energy: d.energy,
+          discomfort: d.discomfort || '',
+          foodQuality: d.food_quality || d.foodQuality || 'balanced'
+        }));
+        setHistory(mapped);
+        localStorage.setItem('health_guardian_history', JSON.stringify(mapped));
+      }
+    } catch (e) {
+      console.error("Failed to fetch history:", e);
+      loadLocalHistory();
     }
   };
 
   const handleLogin = (newUser: User) => {
     setUser(newUser);
+    setIsOfflineMode(false);
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    if (supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        console.error("Logout error:", e);
+      }
+    }
     setUser(null);
+    setHistory([]);
+    localStorage.removeItem('health_guardian_history');
   };
 
   const addToHistory = async (entry: HealthEntry) => {
-    // Optimistic UI update
     const newHistory = [entry, ...history].slice(0, 30);
     setHistory(newHistory);
     localStorage.setItem('health_guardian_history', JSON.stringify(newHistory));
 
-    // Persist to Supabase
-    if (user) {
+    if (user && supabase && !isOfflineMode) {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const { error } = await supabase.from('health_entries').insert([{
@@ -109,7 +168,9 @@ const App: React.FC = () => {
           food_quality: entry.foodQuality
         }]);
         
-        if (error) console.error('Error saving entry to Supabase:', error);
+        if (error) {
+          console.error('Error saving entry to Supabase:', error);
+        }
       }
     }
   };
@@ -117,16 +178,22 @@ const App: React.FC = () => {
   if (isAuthLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="w-12 h-12 bg-indigo-200 rounded-2xl"></div>
-          <div className="h-4 w-24 bg-slate-200 rounded"></div>
+        <div className="flex flex-col items-center gap-6">
+          <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center animate-bounce shadow-xl shadow-indigo-100">
+            <span className="text-white text-3xl font-bold">G</span>
+          </div>
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-slate-800">Health Guardian</h2>
+            <p className="text-sm text-slate-400 font-medium animate-pulse">Initializing wellness systems...</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (!user) {
-    return <Auth onLogin={handleLogin} />;
+  // If Supabase is broken or user is not logged in, show Auth or proceed if Guest allowed
+  if (!user && !isOfflineMode) {
+    return <Auth onLogin={handleLogin} onGuestMode={() => setIsOfflineMode(true)} />;
   }
 
   const navItems = [
@@ -141,9 +208,11 @@ const App: React.FC = () => {
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="xs:block">
+            <div>
               <h1 className="text-lg font-bold text-slate-900 leading-tight">Health Guardian</h1>
-              <p className="text-xs text-slate-500 font-medium">Hello, {user.name || user.email.split('@')[0]}</p>
+              <p className="text-xs text-slate-500 font-medium">
+                {isOfflineMode ? "Running in Guest Mode" : `Hello, ${user?.name || user?.email.split('@')[0]}`}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-6">
@@ -159,15 +228,32 @@ const App: React.FC = () => {
               ))}
             </nav>
             <div className="h-8 w-px bg-slate-200 hidden md:block"></div>
-            <button 
-              onClick={handleLogout}
-              className="text-xs font-bold text-slate-400 hover:text-rose-500 transition-colors uppercase tracking-widest"
-            >
-              Sign Out
-            </button>
+            {isOfflineMode ? (
+               <button 
+               onClick={() => setIsOfflineMode(false)}
+               className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors uppercase tracking-widest"
+             >
+               Sign In
+             </button>
+            ) : (
+              <button 
+                onClick={handleLogout}
+                className="text-xs font-bold text-slate-400 hover:text-rose-500 transition-colors uppercase tracking-widest"
+              >
+                Sign Out
+              </button>
+            )}
           </div>
         </div>
       </header>
+
+      {isOfflineMode && (
+        <div className="bg-amber-50 border-b border-amber-100 py-2 text-center">
+          <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">
+            ⚠️ Running locally. Your data is saved on this device only. Sign in to sync across devices.
+          </p>
+        </div>
+      )}
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-8 pb-32">
         {activeTab === AppTab.CHECKUP && <DailyCheckup onComplete={addToHistory} />}
