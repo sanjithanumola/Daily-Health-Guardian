@@ -19,7 +19,7 @@ const Auth: React.FC<Props> = ({ onLogin, onGuestMode }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supabase) {
-      setError("Cloud connection unavailable. Please use Guest Mode.");
+      setError("Cloud authentication is currently unavailable due to an invalid API key type. Please use 'Continue as Guest' below to access the app using local storage.");
       return;
     }
     
@@ -60,7 +60,12 @@ const Auth: React.FC<Props> = ({ onLogin, onGuestMode }) => {
         }
       }
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred during authentication.');
+      // Catch specific Supabase errors and provide helpful context
+      if (err.message?.includes('secret API key')) {
+        setError("Security Block: You are attempting to use a 'secret' key in the browser. This is forbidden by Supabase. Please use 'Guest Mode' instead.");
+      } else {
+        setError(err.message || 'An unexpected error occurred during authentication.');
+      }
     } finally {
       setLoading(false);
     }
@@ -82,8 +87,11 @@ const Auth: React.FC<Props> = ({ onLogin, onGuestMode }) => {
         <div className="bg-white rounded-[2rem] shadow-xl shadow-indigo-100/50 border border-white/50 overflow-hidden">
           <div className="p-8 md:p-10">
             {error && (
-              <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 text-sm font-medium">
-                {error}
+              <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 text-sm font-bold leading-relaxed">
+                <div className="flex gap-2">
+                  <span className="shrink-0">⚠️</span>
+                  <span>{error}</span>
+                </div>
               </div>
             )}
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -144,10 +152,13 @@ const Auth: React.FC<Props> = ({ onLogin, onGuestMode }) => {
             <div className="mt-4 pt-4 border-t border-slate-50">
               <button 
                 onClick={onGuestMode}
-                className="w-full py-3 bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all"
+                className="w-full py-4 bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-emerald-100 transition-all border border-emerald-100"
               >
-                Continue as Guest (Local Only)
+                Continue as Guest (Local Mode)
               </button>
+              <p className="text-[9px] text-slate-400 font-bold text-center mt-3 uppercase tracking-tighter">
+                Guest mode saves data locally to your device.
+              </p>
             </div>
           </div>
 
