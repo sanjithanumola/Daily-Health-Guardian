@@ -3,41 +3,49 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { HealthAnalysis, MedicineInfo, HealthEntry, SymptomAdvice } from "../types";
 
 const parseAIResponse = (text: string | undefined) => {
-  if (!text) throw new Error("API returned empty response.");
+  if (!text) throw new Error("API returned empty response. This might be a temporary network issue.");
   
   try {
     let cleaned = text.trim();
     // Strip markdown if AI includes it
-    if (cleaned.startsWith("```")) {
-      cleaned = cleaned.replace(/```json|```/g, "").trim();
+    if (cleaned.includes("```")) {
+      const match = cleaned.match(/```(?:json)?([\s\S]*?)```/);
+      if (match && match[1]) {
+        cleaned = match[1].trim();
+      } else {
+        cleaned = cleaned.replace(/```json|```/g, "").trim();
+      }
     }
     return JSON.parse(cleaned);
   } catch (e) {
-    console.error("AI JSON Error:", text);
-    throw new Error(`Technical Format Error: ${e instanceof Error ? e.message : 'Invalid JSON'}`);
+    console.error("AI Response Parsing Failure:", text);
+    throw new Error(`Data Format Error: The AI response wasn't in the expected JSON format. Details: ${e instanceof Error ? e.message : 'Unknown'}`);
   }
 };
 
 const getAI = () => {
   const apiKey = process.env.API_KEY;
-  if (!apiKey || apiKey === "undefined" || apiKey.length < 5) {
-    throw new Error("Missing API Key. Please ensure API_KEY is set in your environment variables.");
+  if (!apiKey || apiKey === "undefined") {
+    throw new Error("API Key Missing: Please ensure the 'API_KEY' environment variable is correctly configured.");
   }
   return new GoogleGenAI({ apiKey });
 };
 
-// We use 'gemini-flash-latest' for the best balance of speed and availability
-const MODEL_NAME = 'gemini-flash-latest';
+// Using Gemini 3 Flash Preview as recommended for stability and speed
+const MODEL_NAME = 'gemini-3-flash-preview';
 
 export const analyzeHealthCheckup = async (entry: HealthEntry): Promise<HealthAnalysis> => {
   const ai = getAI();
-  const prompt = `Analyze: Sleep:${entry.sleep}h, Water:${entry.water}, Stress:${entry.stress}/10, Energy:${entry.energy}/10, Discomfort:${entry.discomfort || "None"}`;
+  const prompt = `Conduct a health habit analysis for a user with these stats: 
+  Sleep: ${entry.sleep}h, Water: ${entry.water} units, Stress: ${entry.stress}/10, 
+  Energy: ${entry.energy}/10, Symptoms: ${entry.discomfort || "None"}. 
+  Diet: ${entry.foodQuality}.`;
 
   const response = await ai.models.generateContent({
     model: MODEL_NAME,
     contents: prompt,
     config: {
-      systemInstruction: "You are Health Guardian AI. Return JSON: {summary, possibleConcern, advice:[], warning}. NO diagnosis.",
+      systemInstruction: "You are the World-Class Health Guardian AI. Provide an encouraging but cautious analysis. DO NOT give medical diagnoses. Return JSON ONLY with fields: summary, possibleConcern, advice (array), warning.",
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -59,9 +67,9 @@ export const getSymptomAdvice = async (symptomQuery: string): Promise<SymptomAdv
   const ai = getAI();
   const response = await ai.models.generateContent({
     model: MODEL_NAME,
-    contents: `Symptom: ${symptomQuery}`,
+    contents: `User reports symptom: ${symptomQuery}. Provide non-medical comfort advice.`,
     config: {
-      systemInstruction: "Return JSON: {symptom, homeCare:[], whenToSeeDoctor:[], precautions}. Safe comfort tips only.",
+      systemInstruction: "Provide supportive home care advice. List red flags that require a doctor. Return JSON ONLY with fields: symptom, homeCare (array), whenToSeeDoctor (array), precautions.",
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -82,17 +90,17 @@ export const getSymptomAdvice = async (symptomQuery: string): Promise<SymptomAdv
 export const scanMedicine = async (medicineName?: string, imageBase64?: string): Promise<MedicineInfo> => {
   const ai = getAI();
   const parts: any[] = [];
-  if (medicineName) parts.push({ text: `Medicine: ${medicineName}` });
+  if (medicineName) parts.push({ text: `Medicine to research: ${medicineName}` });
   if (imageBase64) {
     parts.push({ inlineData: { mimeType: 'image/jpeg', data: imageBase64 } });
-    parts.push({ text: "Scan label for usage." });
+    parts.push({ text: "Read this medicine label and explain its usage safely." });
   }
 
   const response = await ai.models.generateContent({
     model: MODEL_NAME,
     contents: { parts },
     config: {
-      systemInstruction: "Return JSON: {name, usage, howToTake, sideEffects:[], precautions:[], safetyWarnings}. Simple safety info.",
+      systemInstruction: "Explain medicine details simply. Emphasize that users must follow their doctor's prescription. Return JSON ONLY with fields: name, usage, howToTake, sideEffects (array), precautions (array), safetyWarnings.",
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
