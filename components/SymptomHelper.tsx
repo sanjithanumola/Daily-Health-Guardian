@@ -17,19 +17,13 @@ const SymptomHelper: React.FC = () => {
     
     setLoading(true);
     setError(null);
+    setResult(null);
     try {
       const data = await getSymptomAdvice(q);
       setResult(data);
     } catch (err: any) {
       console.error(err);
-      const msg = err.message || "";
-      if (msg.includes("API_KEY")) {
-        setError("Missing API Key. Please ensure the environment variable is set.");
-      } else if (msg.includes("fetch")) {
-        setError("Network error. Please check your internet connection.");
-      } else {
-        setError("Guardian AI is temporarily unavailable. Please try again shortly.");
-      }
+      setError(err.message || "Failed to get advice. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -44,7 +38,7 @@ const SymptomHelper: React.FC = () => {
     <div className="max-w-3xl mx-auto">
       <div className="text-center mb-10">
         <h2 className="text-3xl font-bold text-slate-900 mb-2">Symptom Helper</h2>
-        <p className="text-slate-500">Feeling unwell? Get quick, safe, non-medical advice for common issues.</p>
+        <p className="text-slate-500 font-medium">Safe, non-medical advice for your peace of mind.</p>
       </div>
 
       <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 mb-8">
@@ -54,7 +48,7 @@ const SymptomHelper: React.FC = () => {
               <button 
                 key={sym}
                 onClick={() => handleQuickClick(sym)}
-                className="px-4 py-2 bg-slate-50 text-slate-600 text-sm font-semibold rounded-full hover:bg-indigo-50 hover:text-indigo-600 transition-all border border-slate-100"
+                className="px-4 py-2 bg-slate-50 text-slate-600 text-xs font-bold rounded-full hover:bg-indigo-50 hover:text-indigo-600 transition-all border border-slate-100 uppercase tracking-wider"
               >
                 {sym}
               </button>
@@ -64,7 +58,7 @@ const SymptomHelper: React.FC = () => {
           <form onSubmit={(e) => { e.preventDefault(); handleSearch(query); }} className="relative">
             <input 
               type="text" 
-              placeholder="Describe your symptom (e.g., 'Fever and chills', 'Upset stomach')"
+              placeholder="Describe your symptom..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               disabled={loading}
@@ -73,61 +67,57 @@ const SymptomHelper: React.FC = () => {
             <button 
               type="submit"
               disabled={loading || !query.trim()}
-              className="absolute right-2 top-2 bottom-2 px-6 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50"
+              className="absolute right-2 top-2 bottom-2 px-6 bg-indigo-600 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50"
             >
               Get Help
             </button>
           </form>
 
           {error && (
-            <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 text-sm font-medium flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              {error}
+            <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600 text-sm font-medium flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">⚠️</span>
+                {error}
+              </div>
+              <button onClick={() => handleSearch(query)} className="text-xs font-black uppercase tracking-tighter text-rose-700 underline">Retry</button>
             </div>
           )}
         </div>
       </div>
 
       {loading && (
-        <div className="flex flex-col items-center gap-4 py-20 animate-pulse">
-          <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600">
-            <svg className="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          </div>
-          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Searching Medical Knowledge...</p>
+        <div className="flex flex-col items-center gap-4 py-20">
+          <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+          <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] animate-pulse">Consulting Knowledge Base...</p>
         </div>
       )}
 
       {result && !loading && (
         <div className="space-y-6 animate-in slide-in-from-bottom duration-500">
-          <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-3xl">
-            <h3 className="text-indigo-900 font-bold text-xl mb-4 flex items-center gap-2">
-              <span className="text-2xl">✨</span> Advice for {result.symptom}
+          <div className="bg-indigo-50 border border-indigo-100 p-6 md:p-8 rounded-[2.5rem]">
+            <h3 className="text-indigo-900 font-black text-2xl mb-6 flex items-center gap-3">
+              <span className="text-3xl">🛡️</span> Guardian Advice: {result.symptom}
             </h3>
             
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-white p-5 rounded-2xl shadow-sm border border-indigo-100/50">
-                <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3">Comfort & Home Care</h4>
-                <ul className="space-y-2">
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-indigo-100/50">
+                <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-4">Supportive Care</h4>
+                <ul className="space-y-3">
                   {result.homeCare.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-slate-700 text-sm">
-                      <span className="text-indigo-400 font-bold">•</span>
+                    <li key={i} className="flex items-start gap-3 text-slate-700 text-sm font-medium">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-200 mt-1.5 shrink-0" />
                       {item}
                     </li>
                   ))}
                 </ul>
               </div>
 
-              <div className="bg-rose-50 p-5 rounded-2xl shadow-sm border border-rose-100/50">
-                <h4 className="text-xs font-bold text-rose-400 uppercase tracking-widest mb-3">When to see a doctor</h4>
-                <ul className="space-y-2">
+              <div className="bg-rose-50/50 p-6 rounded-3xl shadow-sm border border-rose-100/50">
+                <h4 className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-4">Red Flags / See Doctor</h4>
+                <ul className="space-y-3">
                   {result.whenToSeeDoctor.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-rose-900 text-sm font-medium">
-                      <span className="text-rose-400 font-bold">!</span>
+                    <li key={i} className="flex items-start gap-3 text-rose-900 text-sm font-semibold">
+                      <span className="text-rose-400 shrink-0">🚩</span>
                       {item}
                     </li>
                   ))}
@@ -135,16 +125,9 @@ const SymptomHelper: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-6 p-4 bg-white/60 rounded-xl border border-indigo-100/50 text-xs text-indigo-800 font-medium italic">
-              "Remember: {result.precautions}"
+            <div className="mt-6 p-4 bg-white/60 rounded-2xl border border-indigo-100/50 text-xs text-indigo-800 font-bold italic">
+              "Note: {result.precautions}"
             </div>
-          </div>
-          
-          <div className="bg-slate-100 p-4 rounded-xl text-center">
-            <p className="text-xs text-slate-500">
-              Disclaimer: This assistant provides general health tips and is not a replacement for professional medical diagnosis. 
-              Always consult a doctor for serious symptoms.
-            </p>
           </div>
         </div>
       )}
