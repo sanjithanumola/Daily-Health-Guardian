@@ -42,5 +42,6 @@ export enum AppTab {
   CHECKUP = 'checkup',
   SYMPTOMS = 'symptoms',
   MEDICINE = 'medicine',
-  DASHBOARD = 'dashboard'
+  DASHBOARD = 'dashboard',
+  SQL = 'sql'
 }
