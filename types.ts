@@ -38,10 +38,20 @@ export interface SymptomAdvice {
   precautions: string;
 }
 
+export interface Reminder {
+  id: string;
+  type: 'medicine' | 'checkup';
+  label: string;
+  time: string; // HH:mm
+  repeat: 'daily' | 'weekdays' | 'weekends' | 'once';
+  active: boolean;
+  lastNotified?: string; // YYYY-MM-DD
+}
+
 export enum AppTab {
   CHECKUP = 'checkup',
   SYMPTOMS = 'symptoms',
   MEDICINE = 'medicine',
   DASHBOARD = 'dashboard',
-  SQL = 'sql'
+  SCHEDULES = 'schedules'
 }

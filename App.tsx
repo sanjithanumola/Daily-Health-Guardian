@@ -1,251 +1,214 @@
 
-import React, { useState, useEffect } from 'react';
-import { AppTab, HealthEntry, User } from './types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { AppTab, HealthEntry, User, Reminder } from './types';
 import DailyCheckup from './components/DailyCheckup';
 import MedicineScanner from './components/MedicineScanner';
 import HealthDashboard from './components/HealthDashboard';
 import SymptomHelper from './components/SymptomHelper';
-import SqlEditor from './components/SqlEditor';
+import Reminders from './components/Reminders';
 import Auth from './components/Auth';
-import { supabase } from './services/supabase';
+import { supabase, db } from './services/supabase';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.CHECKUP);
   const [history, setHistory] = useState<HealthEntry[]>([]);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
+  // Robust Logout to prevent blank page
+  const handleLogout = async () => {
+    try {
+      if (supabase) await supabase.auth.signOut();
+      localStorage.clear();
+      setUser(null);
+      setIsOfflineMode(false);
+      // Clean reload to base URL
+      window.location.replace(window.location.origin + window.location.pathname);
+    } catch (e) {
+      console.error("Logout error:", e);
+      localStorage.clear();
+      window.location.reload();
+    }
+  };
+
+  // Cloud Sync
   useEffect(() => {
-    const safetyTimeout = setTimeout(() => {
-      if (isAuthLoading) {
-        setIsAuthLoading(false);
-        setIsOfflineMode(true);
-        loadLocalHistory();
-      }
-    }, 3500);
+    if (user && !isOfflineMode) {
+      const sync = async () => {
+        setIsSyncing(true);
+        try {
+          const cloudEntries = await db.getEntries();
+          setHistory(cloudEntries);
+        } catch (e) {
+          console.error("Cloud sync failed:", e);
+        } finally {
+          setIsSyncing(false);
+        }
+      };
+      sync();
+    }
+  }, [user, isOfflineMode]);
 
+  // Auth Session Recovery
+  useEffect(() => {
     const checkSession = async () => {
+      // Recovery timeout: If session check hangs, default to false
+      const timeout = setTimeout(() => setIsAuthLoading(false), 3000);
+      
       if (!supabase) {
+        const localUser = localStorage.getItem('health_guardian_mock_user');
+        if (localUser) setUser(JSON.parse(localUser));
+        const offline = localStorage.getItem('health_guardian_offline_mode');
+        if (offline === 'true') setIsOfflineMode(true);
+        clearTimeout(timeout);
         setIsAuthLoading(false);
-        setIsOfflineMode(true);
-        loadLocalHistory();
         return;
       }
 
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
-        
+        const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           setUser({
             email: session.user.email || '',
             name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
           });
-        } else {
-          loadLocalHistory();
         }
       } catch (err) {
-        setIsOfflineMode(true);
-        loadLocalHistory();
+        console.error("Session check error:", err);
       } finally {
+        clearTimeout(timeout);
         setIsAuthLoading(false);
-        clearTimeout(safetyTimeout);
       }
     };
-
     checkSession();
-
-    let subscription: any = null;
-    if (supabase) {
-      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
-          setUser({
-            email: session.user.email || '',
-            name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
-          });
-          setIsOfflineMode(false);
-        } else {
-          setUser(null);
-          loadLocalHistory();
-        }
-      });
-      subscription = data.subscription;
-    }
-
-    return () => {
-      clearTimeout(safetyTimeout);
-      if (subscription) subscription.unsubscribe();
-    };
   }, []);
 
-  const loadLocalHistory = () => {
-    const savedHistory = localStorage.getItem('health_guardian_history');
-    if (savedHistory) {
-      try {
-        setHistory(JSON.parse(savedHistory));
-      } catch (e) {
-        console.error("Corrupt local storage data", e);
-      }
-    }
-  };
-
+  // Local Data Recovery
   useEffect(() => {
-    if (user && !isOfflineMode) {
-      fetchHistory();
-    }
-  }, [user, isOfflineMode]);
-
-  const fetchHistory = async () => {
-    if (!supabase || isOfflineMode) return;
-    try {
-      const { data, error } = await supabase
-        .from('health_entries')
-        .select('*')
-        .order('timestamp', { ascending: false })
-        .limit(100);
-
-      if (error) {
-        loadLocalHistory();
-      } else if (data) {
-        const mapped = data.map((d: any) => ({
-          id: d.id,
-          timestamp: Number(d.timestamp),
-          sleep: d.sleep,
-          water: d.water,
-          stress: d.stress,
-          energy: d.energy,
-          discomfort: d.discomfort || '',
-          foodQuality: d.food_quality || d.foodQuality || 'balanced'
-        }));
-        setHistory(mapped);
-        localStorage.setItem('health_guardian_history', JSON.stringify(mapped));
-      }
-    } catch (e) {
-      loadLocalHistory();
-    }
-  };
-
-  const handleLogin = (newUser: User) => {
-    setUser(newUser);
-    setIsOfflineMode(false);
-  };
-
-  const handleLogout = async () => {
-    if (supabase) {
-      try {
-        await supabase.auth.signOut();
-      } catch (e) {}
-    }
-    setUser(null);
-    setHistory([]);
-    localStorage.removeItem('health_guardian_history');
-  };
+    const h = localStorage.getItem('health_guardian_history');
+    if (h) try { setHistory(JSON.parse(h)); } catch(e) {}
+    
+    const r = localStorage.getItem('health_guardian_reminders');
+    if (r) try { setReminders(JSON.parse(r)); } catch(e) {}
+  }, []);
 
   const addToHistory = async (entry: HealthEntry) => {
     const newHistory = [entry, ...history].slice(0, 100);
     setHistory(newHistory);
     localStorage.setItem('health_guardian_history', JSON.stringify(newHistory));
-
-    if (user && supabase && !isOfflineMode) {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        await supabase.from('health_entries').insert([{
-          user_id: session.user.id,
-          timestamp: entry.timestamp,
-          sleep: entry.sleep,
-          water: entry.water,
-          stress: entry.stress,
-          energy: entry.energy,
-          discomfort: entry.discomfort,
-          food_quality: entry.foodQuality
-        }]);
-      }
+    
+    if (user && !isOfflineMode) {
+      try { await db.saveEntry(entry); } catch (e) { console.warn("Save failed", e); }
     }
   };
 
   if (isAuthLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#F2F2F7] flex items-center justify-center p-8">
         <div className="flex flex-col items-center gap-6">
-          <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center animate-bounce shadow-xl shadow-indigo-100">
-            <span className="text-white text-3xl font-bold">G</span>
-          </div>
-          <p className="text-sm text-slate-400 font-black uppercase tracking-widest animate-pulse">Initializing Wellness...</p>
+          <div className="w-12 h-12 border-[4px] border-indigo-600/10 border-t-indigo-600 rounded-full animate-spin"></div>
+          <p className="text-indigo-600 font-bold uppercase tracking-[0.2em] text-[10px]">Authorizing Vault...</p>
         </div>
       </div>
     );
   }
 
   if (!user && !isOfflineMode) {
-    return <Auth onLogin={handleLogin} onGuestMode={() => setIsOfflineMode(true)} />;
+    return <Auth onLogin={setUser} onGuestMode={() => setIsOfflineMode(true)} />;
   }
 
   const navItems = [
-    { id: AppTab.CHECKUP, label: 'Check', icon: '📝' },
-    { id: AppTab.SYMPTOMS, label: 'Symptoms', icon: '🌡️' },
-    { id: AppTab.MEDICINE, label: 'Scan', icon: '💊' },
-    { id: AppTab.DASHBOARD, label: 'Trends', icon: '📊' },
-    { id: AppTab.SQL, label: 'Data Lab', icon: '💻' },
+    { id: AppTab.CHECKUP, label: 'Journal', icon: '✍️' },
+    { id: AppTab.DASHBOARD, label: 'Vitality', icon: '⚡' },
+    { id: AppTab.SYMPTOMS, label: 'Helper', icon: '🌡️' },
+    { id: AppTab.MEDICINE, label: 'Scanner', icon: '📷' },
+    { id: AppTab.SCHEDULES, label: 'Alerts', icon: '🔔' },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black">G</div>
-            <div>
-              <h1 className="text-sm font-black text-slate-900 leading-tight uppercase tracking-tight">Health Guardian</h1>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                {isOfflineMode ? "Guest Mode" : user?.email}
+    <div className="min-h-screen bg-[#F2F2F7] flex flex-col selection:bg-indigo-100 pb-32 lg:pb-0">
+      <header className="sticky top-0 z-[60] bg-white/70 backdrop-blur-3xl border-b border-slate-200/50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-4 cursor-pointer" onClick={() => setActiveTab(AppTab.CHECKUP)}>
+            <div className="w-10 h-10 bg-gradient-to-tr from-indigo-700 to-indigo-500 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-100">G</div>
+            <div className="hidden sm:block">
+              <h1 className="text-lg font-extrabold tracking-tight leading-none">Guardian</h1>
+              <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mt-1">
+                {isOfflineMode ? 'Local Only' : 'Encrypted Cloud'}
+                {isSyncing && ' • Syncing...'}
               </p>
             </div>
           </div>
+
+          <nav className="hidden lg:flex items-center gap-1 bg-slate-200/50 p-1 rounded-2xl">
+            {navItems.map(item => (
+              <button 
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === item.id ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
+
           <div className="flex items-center gap-4">
-            <nav className="hidden lg:flex items-center gap-1">
-              {navItems.map(item => (
-                <button 
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`text-[10px] font-black uppercase tracking-widest transition-all px-4 py-2 rounded-xl ${activeTab === item.id ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </nav>
-            <div className="h-4 w-px bg-slate-200 hidden lg:block"></div>
-            <button 
-              onClick={isOfflineMode ? () => setIsOfflineMode(false) : handleLogout}
-              className="text-[10px] font-black text-slate-400 hover:text-rose-500 transition-colors uppercase tracking-widest"
-            >
-              {isOfflineMode ? "Sign In" : "Log Out"}
-            </button>
+            <div className="hidden md:flex flex-col items-end">
+              <span className="text-xs font-bold text-slate-900">{user?.name || 'Explorer'}</span>
+              <button onClick={handleLogout} className="text-[10px] font-bold text-rose-500 hover:underline">Log out</button>
+            </div>
+            <div className="w-10 h-10 bg-white rounded-2xl border border-slate-200 flex items-center justify-center text-sm font-black text-indigo-600 shadow-sm">
+              {user?.name?.[0]?.toUpperCase() || 'U'}
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8 pb-32">
-        {activeTab === AppTab.CHECKUP && <DailyCheckup onComplete={addToHistory} />}
-        {activeTab === AppTab.SYMPTOMS && <SymptomHelper />}
-        {activeTab === AppTab.MEDICINE && <MedicineScanner />}
-        {activeTab === AppTab.DASHBOARD && <HealthDashboard history={history} />}
-        {activeTab === AppTab.SQL && <SqlEditor history={history} />}
+      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-10">
+        <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+          {activeTab === AppTab.CHECKUP && <DailyCheckup onComplete={addToHistory} />}
+          {activeTab === AppTab.DASHBOARD && <HealthDashboard history={history} />}
+          {activeTab === AppTab.SYMPTOMS && <SymptomHelper />}
+          {activeTab === AppTab.MEDICINE && <MedicineScanner />}
+          {activeTab === AppTab.SCHEDULES && (
+            <Reminders 
+              reminders={reminders} 
+              onAdd={(r) => { 
+                const nr = [...reminders, r]; 
+                setReminders(nr); 
+                localStorage.setItem('health_guardian_reminders', JSON.stringify(nr)); 
+              }} 
+              onToggle={(id) => {
+                const nr = reminders.map(rem => rem.id === id ? { ...rem, active: !rem.active } : rem);
+                setReminders(nr);
+                localStorage.setItem('health_guardian_reminders', JSON.stringify(nr));
+              }} 
+              onDelete={(id) => {
+                const nr = reminders.filter(rem => rem.id !== id);
+                setReminders(nr);
+                localStorage.setItem('health_guardian_reminders', JSON.stringify(nr));
+              }} 
+            />
+          )}
+        </div>
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-100 p-2 lg:hidden z-50">
-        <div className="flex justify-around items-center">
+      <footer className="lg:hidden fixed bottom-6 left-6 right-6 z-[70]">
+        <nav className="bg-white/80 backdrop-blur-3xl border border-white/40 shadow-2xl shadow-indigo-200/20 rounded-[2.5rem] p-2 flex justify-between items-center">
           {navItems.map(item => (
             <button 
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${activeTab === item.id ? 'text-indigo-600 bg-indigo-50 shadow-sm' : 'text-slate-400'}`}
+              key={item.id} 
+              onClick={() => setActiveTab(item.id)} 
+              className={`flex-1 flex flex-col items-center gap-1.5 py-4 rounded-[1.8rem] transition-all ${activeTab === item.id ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-200' : 'text-slate-400 hover:bg-slate-50'}`}
             >
-              <span className="text-lg">{item.icon}</span>
-              <span className="text-[9px] font-black uppercase tracking-tighter">{item.label}</span>
+              <span className="text-xl">{item.icon}</span>
+              <span className="text-[9px] font-extrabold uppercase tracking-tighter">{item.label}</span>
             </button>
           ))}
-        </div>
+        </nav>
       </footer>
     </div>
   );

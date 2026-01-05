@@ -1,39 +1,52 @@
 
 import { createClient } from '@supabase/supabase-js';
+import { HealthEntry, Reminder } from '../types';
 
 const supabaseUrl = 'https://qvoahwloegeoxoegcrzo.supabase.co';
-// This key was identified as a "secret" key in the browser environment, 
-// which Supabase explicitly forbids for security reasons.
-const supabaseKeyFromUser = 'sb_secret_BASAkEaAPHGNEAXmKZI_nA_tgBppK34';
+// WARNING: Replace this with your public 'anon' key from Supabase Dashboard
+const SUPABASE_ANON_KEY: string = ''; 
 
 export const supabase = (() => {
   try {
-    // SECURITY CHECK: Supabase "Secret" keys (starting with 'sb_secret' or service_role)
-    // MUST NOT be used in the browser. Only 'anon' keys (starting with 'ey...') are allowed.
-    const isSecretKey = supabaseKeyFromUser.startsWith('sb_secret') || supabaseKeyFromUser.includes('service_role');
-    
-    if (!supabaseUrl || !supabaseKeyFromUser || supabaseKeyFromUser.startsWith('sb_placeholder') || isSecretKey) {
-      if (isSecretKey) {
-        console.error("CRITICAL SECURITY WARNING: A Supabase 'secret' key was detected. For security, this key cannot be used in a browser environment. Falling back to Local Storage mode.");
-      } else {
-        console.warn("Supabase credentials missing or invalid. App will use Local Storage.");
-      }
-      return null;
-    }
-    
-    return createClient(supabaseUrl, supabaseKeyFromUser);
+    if (!SUPABASE_ANON_KEY || SUPABASE_ANON_KEY.length < 10) return null;
+    return createClient(supabaseUrl, SUPABASE_ANON_KEY);
   } catch (e) {
     console.error("Supabase Init Error:", e);
     return null;
   }
 })();
 
-export const isSupabaseHealthy = async () => {
-  if (!supabase) return false;
-  try {
-    const { error } = await supabase.from('health_entries').select('id').limit(1);
-    return !error;
-  } catch {
-    return false;
+export const db = {
+  async getEntries(): Promise<HealthEntry[]> {
+    if (!supabase) return [];
+    const { data, error } = await supabase
+      .from('health_entries')
+      .select('*')
+      .order('timestamp', { ascending: false });
+    
+    if (error) throw error;
+    return (data || []).map(d => ({
+      ...d,
+      foodQuality: d.food_quality // map snack_case to camelCase
+    }));
+  },
+
+  async saveEntry(entry: HealthEntry) {
+    if (!supabase) return null;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { error } = await supabase.from('health_entries').insert([{
+      user_id: user.id,
+      timestamp: entry.timestamp,
+      sleep: entry.sleep,
+      water: entry.water,
+      stress: entry.stress,
+      energy: entry.energy,
+      discomfort: entry.discomfort,
+      food_quality: entry.foodQuality
+    }]);
+
+    if (error) throw error;
   }
 };

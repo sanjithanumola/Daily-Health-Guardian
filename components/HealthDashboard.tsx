@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { HealthEntry } from '../types';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 interface Props {
   history: HealthEntry[];
@@ -10,126 +10,123 @@ interface Props {
 const HealthDashboard: React.FC<Props> = ({ history }) => {
   if (history.length === 0) {
     return (
-      <div className="max-w-2xl mx-auto py-20 text-center space-y-4">
-        <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-300">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
+      <div className="max-w-md mx-auto py-32 text-center animate-in fade-in duration-1000">
+        <div className="w-24 h-24 bg-white rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-sm border border-slate-100">
+          <span className="text-4xl grayscale opacity-30">📉</span>
         </div>
-        <h3 className="text-xl font-bold text-slate-800">No History Yet</h3>
-        <p className="text-slate-500">Complete your first Daily Checkup to start seeing trends.</p>
+        <h2 className="text-2xl font-black text-slate-900 mb-2">Awaiting Data</h2>
+        <p className="text-slate-500 font-medium">Log your first checkup to start the analysis engine.</p>
       </div>
     );
   }
 
-  const chartData = [...history].reverse().map(h => ({
-    ...h,
-    date: new Date(h.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })
-  }));
+  const chartData = useMemo(() => 
+    [...history].reverse().map(h => ({
+      ...h,
+      date: new Date(h.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })
+    }))
+  , [history]);
+
+  const latest = history[0];
+  const healthScore = Math.round((latest.energy + (10 - latest.stress)) * 5);
+  const scoreColor = healthScore > 75 ? 'text-emerald-500' : healthScore > 40 ? 'text-indigo-600' : 'text-rose-500';
 
   return (
-    <div className="space-y-10">
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="text-3xl font-bold text-slate-900">Health Dashboard</h2>
-          <p className="text-slate-500">Visualizing your progress over the last {history.length} checkups.</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-800">Sleep History</h3>
-            <span className="text-xs font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded">Hours</span>
-          </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorSleep" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
-                <YAxis hide />
-                <Tooltip 
-                  contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}}
-                />
-                <Area type="monotone" dataKey="sleep" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorSleep)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-800">Energy vs Stress</h3>
-            <span className="text-xs font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded">Scale 1-10</span>
-          </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
-                <YAxis hide />
-                <Tooltip 
-                  contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}}
-                />
-                <Line type="monotone" dataKey="energy" stroke="#10b981" strokeWidth={3} dot={{r: 4, fill: '#10b981'}} />
-                <Line type="monotone" dataKey="stress" stroke="#ef4444" strokeWidth={3} dot={{r: 4, fill: '#ef4444'}} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="flex gap-4 mt-4 justify-center">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
-              <div className="w-3 h-3 rounded-full bg-emerald-500" /> Energy
+    <div className="space-y-8 animate-in fade-in duration-1000">
+      {/* Header Bento Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Vitality Score Card */}
+        <div className="lg:col-span-1 bg-white rounded-[3rem] p-10 border border-slate-200/60 shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-white pointer-events-none" />
+          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-10 relative z-10">Vitality Index</h3>
+          
+          <div className="relative w-48 h-48 flex items-center justify-center mb-8">
+            <svg className="w-full h-full transform -rotate-90">
+              <circle cx="96" cy="96" r="88" fill="none" stroke="#f1f5f9" strokeWidth="12" />
+              <circle 
+                cx="96" cy="96" r="88" fill="none" stroke="currentColor" strokeWidth="12" 
+                strokeDasharray={2 * Math.PI * 88}
+                strokeDashoffset={2 * Math.PI * 88 * (1 - healthScore / 100)}
+                className={`${scoreColor} transition-all duration-1000 ease-out`}
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className={`text-5xl font-black ${scoreColor}`}>{healthScore}</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Optimal</span>
             </div>
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
-              <div className="w-3 h-3 rounded-full bg-rose-500" /> Stress
+          </div>
+          <p className="text-slate-500 text-sm font-medium relative z-10 leading-relaxed px-4">
+            Your body's current recovery state is <strong className={scoreColor}>{healthScore > 70 ? 'Strong' : 'Steady'}</strong>.
+          </p>
+        </div>
+
+        {/* Energy Trend Card */}
+        <div className="lg:col-span-2 bg-indigo-600 rounded-[3rem] p-10 text-white shadow-2xl shadow-indigo-100 flex flex-col justify-between relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-[80px] -mr-32 -mt-32" />
+          <div>
+            <div className="flex justify-between items-start mb-12">
+              <div>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 mb-2">Energy Dynamics</h3>
+                <div className="text-4xl font-bold">{latest.energy}/10 <span className="text-xs opacity-60">Peak</span></div>
+              </div>
+              <div className="bg-white/20 backdrop-blur px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest">Live Tracking</div>
+            </div>
+            
+            <div className="h-40 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <Area type="monotone" dataKey="energy" stroke="#fff" strokeWidth={3} fill="rgba(255,255,255,0.15)" />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-        <h3 className="font-bold text-slate-800 mb-6">Recent Checkups</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50">
-                <th className="pb-4">Date</th>
-                <th className="pb-4">Sleep</th>
-                <th className="pb-4">Energy</th>
-                <th className="pb-4">Stress</th>
-                <th className="pb-4">Discomfort</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.map((h, i) => (
-                <tr key={h.id} className="border-b border-slate-50 last:border-0">
-                  <td className="py-4 text-sm text-slate-600 font-medium">
-                    {new Date(h.timestamp).toLocaleDateString()}
-                  </td>
-                  <td className="py-4 text-sm text-slate-600">{h.sleep}h</td>
-                  <td className="py-4">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${h.energy > 7 ? 'bg-green-50 text-green-700' : h.energy > 4 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>
-                      {h.energy}/10
-                    </span>
-                  </td>
-                  <td className="py-4">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${h.stress < 4 ? 'bg-green-50 text-green-700' : h.stress < 7 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>
-                      {h.stress}/10
-                    </span>
-                  </td>
-                  <td className="py-4 text-sm text-slate-400 truncate max-w-[150px]">
-                    {h.discomfort || "None"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Metrics Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: 'Sleep', value: `${latest.sleep}h`, color: 'text-indigo-600', bg: 'bg-indigo-50', icon: '🌙' },
+          { label: 'Hydration', value: `${latest.water}u`, color: 'text-sky-500', bg: 'bg-sky-50', icon: '💧' },
+          { label: 'Stress', value: `${latest.stress}/10`, color: 'text-rose-500', bg: 'bg-rose-50', icon: '🧠' },
+          { label: 'Nutrients', value: latest.foodQuality, color: 'text-emerald-600', bg: 'bg-emerald-50', icon: '🥗' }
+        ].map((m, i) => (
+          <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-slate-200/60 shadow-sm hover:translate-y-[-4px] transition-all">
+            <div className={`w-12 h-12 ${m.bg} ${m.color} rounded-2xl flex items-center justify-center text-xl mb-6`}>{m.icon}</div>
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{m.label}</h4>
+            <div className={`text-2xl font-black ${m.color} capitalize`}>{m.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Analytics Chart Section */}
+      <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-200/60">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-12">
+          <div>
+            <h3 className="text-xl font-extrabold text-slate-900">Habit Correlation</h3>
+            <p className="text-xs text-slate-500 font-medium">Tracking stress vs sleep quality over time.</p>
+          </div>
+          <div className="flex gap-4">
+            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-indigo-600" /><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sleep</span></div>
+            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-rose-500" /><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Stress</span></div>
+          </div>
+        </div>
+        <div className="h-80 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8', fontWeight: 700}} />
+              <YAxis hide domain={[0, 12]} />
+              <Tooltip 
+                contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.08)', padding: '16px' }}
+                itemStyle={{ fontSize: '12px', fontWeight: 800 }}
+              />
+              <Line type="monotone" dataKey="sleep" stroke="#4f46e5" strokeWidth={4} dot={{ r: 4, fill: '#4f46e5', strokeWidth: 2, stroke: '#fff' }} />
+              <Line type="monotone" dataKey="stress" stroke="#f43f5e" strokeWidth={4} dot={{ r: 4, fill: '#f43f5e', strokeWidth: 2, stroke: '#fff' }} />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </div>

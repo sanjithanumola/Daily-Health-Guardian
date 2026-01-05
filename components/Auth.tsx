@@ -15,26 +15,38 @@ const Auth: React.FC<Props> = ({ onLogin, onGuestMode }) => {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSql, setShowSql] = useState(false);
+
+  // Mock Credentials for Demo Mode
+  const DEMO_EMAIL = 'admin@guardian.ai';
+  const DEMO_PASS = 'password123';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supabase) {
-      setError("Cloud authentication is currently unavailable due to an invalid API key type. Please use 'Continue as Guest' below to access the app using local storage.");
-      return;
-    }
-    
     setLoading(true);
     setError(null);
     
+    // DEMO MODE if no supabase config
+    if (!supabase) {
+      setTimeout(() => {
+        if (isLogin) {
+          if (email === DEMO_EMAIL && password === DEMO_PASS) {
+            onLogin({ email: DEMO_EMAIL, name: 'Guardian Admin' });
+          } else {
+            setError('Account not found. Use Demo: admin@guardian.ai / password123');
+          }
+        } else {
+          onLogin({ email, name: name || 'Explorer' });
+        }
+        setLoading(false);
+      }, 1000);
+      return;
+    }
+    
     try {
       if (isLogin) {
-        const { data, error: authError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        
+        const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
         if (authError) throw authError;
-        
         if (data.user) {
           onLogin({
             email: data.user.email || '',
@@ -45,136 +57,118 @@ const Auth: React.FC<Props> = ({ onLogin, onGuestMode }) => {
         const { data, error: authError } = await supabase.auth.signUp({
           email,
           password,
-          options: {
-            data: { name },
-          },
+          options: { data: { name } },
         });
-        
         if (authError) throw authError;
-        
         if (data.user) {
-          onLogin({
-            email: data.user.email || '',
-            name,
-          });
+          onLogin({ email: data.user.email || '', name });
         }
       }
     } catch (err: any) {
-      // Catch specific Supabase errors and provide helpful context
-      if (err.message?.includes('secret API key')) {
-        setError("Security Block: You are attempting to use a 'secret' key in the browser. This is forbidden by Supabase. Please use 'Guest Mode' instead.");
-      } else {
-        setError(err.message || 'An unexpected error occurred during authentication.');
-      }
+      setError(err.message || 'Authentication failed. Please verify your connection.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-50 via-slate-50 to-emerald-50">
-      <div className="max-w-md w-full animate-in fade-in zoom-in duration-500">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-200 mx-auto mb-4">
-            <span className="text-white text-3xl font-bold">G</span>
+    <div className="min-h-screen flex items-center justify-center p-6 bg-[#FBFBFD]">
+      {/* Decorative Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-100 rounded-full blur-[120px] opacity-60"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-50 rounded-full blur-[120px] opacity-60"></div>
+      </div>
+
+      <div className="max-w-md w-full relative z-10">
+        <div className="text-center mb-12">
+          <div className="w-20 h-20 bg-gradient-to-tr from-indigo-700 to-indigo-500 rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-100 mx-auto mb-8 animate-bounce-slow">
+            <span className="text-white text-4xl font-black">G</span>
           </div>
-          <h1 className="text-3xl font-black text-slate-900 leading-tight">Health Guardian</h1>
-          <p className="text-slate-500 mt-2 font-medium">
-            {isLogin ? 'Welcome back to your daily care' : 'Start your journey to better health'}
-          </p>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase mb-2">Health Guardian</h1>
+          <p className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px]">Your Daily Habital Intelligence</p>
         </div>
 
-        <div className="bg-white rounded-[2rem] shadow-xl shadow-indigo-100/50 border border-white/50 overflow-hidden">
-          <div className="p-8 md:p-10">
-            {error && (
-              <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 text-sm font-bold leading-relaxed">
-                <div className="flex gap-2">
-                  <span className="shrink-0">⚠️</span>
-                  <span>{error}</span>
-                </div>
+        <div className="bg-white/80 backdrop-blur-3xl rounded-[3rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)] border border-white/60 p-10 overflow-hidden">
+          {!supabase && isLogin && (
+            <div className="mb-8 p-6 bg-indigo-50/50 rounded-3xl border border-indigo-100 flex flex-col items-center gap-4">
+              <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-white px-3 py-1 rounded-full shadow-sm">Demo Mode Active</span>
+              <div className="text-center">
+                <p className="text-[11px] font-bold text-slate-500 mb-1">Testing Credentials:</p>
+                <code className="text-[10px] font-black text-indigo-700 bg-white/50 px-2 py-1 rounded select-all">admin@guardian.ai / password123</code>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {!isLogin && (
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Display Name</label>
+                <input 
+                  type="text" required value={name} onChange={(e) => setName(e.target.value)}
+                  className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-slate-700"
+                  placeholder="John Doe"
+                />
               </div>
             )}
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {!isLogin && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
-                  <input 
-                    type="text" 
-                    required 
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-700 font-medium"
-                    placeholder="John Doe"
-                  />
-                </div>
-              )}
-              
-              <div className="space-y-1.5">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
-                <input 
-                  type="email" 
-                  required 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-700 font-medium"
-                  placeholder="name@gmail.com"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
-                <input 
-                  type="password" 
-                  required 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-700 font-medium"
-                  placeholder="••••••••"
-                />
-              </div>
-
-              <button 
-                type="submit"
-                disabled={loading}
-                className="w-full py-4 bg-indigo-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center justify-center gap-3 active:scale-[0.98]"
-              >
-                {loading ? (
-                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                ) : (
-                  isLogin ? 'Sign In' : 'Create Account'
-                )}
-              </button>
-            </form>
-
-            <div className="mt-4 pt-4 border-t border-slate-50">
-              <button 
-                onClick={onGuestMode}
-                className="w-full py-4 bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-emerald-100 transition-all border border-emerald-100"
-              >
-                Continue as Guest (Local Mode)
-              </button>
-              <p className="text-[9px] text-slate-400 font-bold text-center mt-3 uppercase tracking-tighter">
-                Guest mode saves data locally to your device.
-              </p>
+            
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Email Identity</label>
+              <input 
+                type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-slate-700"
+                placeholder="name@email.com"
+              />
             </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Access Key</label>
+              <input 
+                type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-slate-700"
+                placeholder="••••••••"
+              />
+            </div>
+
+            {error && <p className="text-[10px] font-bold text-rose-500 text-center px-4 animate-pulse">{error}</p>}
+
+            <button 
+              type="submit" disabled={loading}
+              className="w-full py-5 bg-indigo-600 text-white font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-[0.98] flex items-center justify-center"
+            >
+              {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : (isLogin ? 'Sign In' : 'Create Vault')}
+            </button>
+          </form>
+
+          <div className="relative my-10">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div>
+            <div className="relative flex justify-center text-[9px] font-black uppercase tracking-[0.4em]"><span className="bg-white px-6 text-slate-300">Privacy Mode</span></div>
           </div>
 
-          <div className="bg-slate-50 border-t border-slate-100 px-8 py-5 text-center">
-            <p className="text-sm text-slate-500 font-medium">
-              {isLogin ? "Don't have an account?" : "Already have an account?"}{' '}
-              <button 
-                onClick={() => { setIsLogin(!isLogin); setError(null); }}
-                className="text-indigo-600 font-black"
-              >
-                {isLogin ? 'Sign Up' : 'Log In'}
-              </button>
-            </p>
-          </div>
+          <button 
+            onClick={onGuestMode}
+            className="w-full py-4 border border-emerald-100 bg-emerald-50/30 text-emerald-700 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-emerald-50 transition-all active:scale-[0.98]"
+          >
+            Enter Guest Mode
+          </button>
+        </div>
+
+        <div className="mt-8 text-center">
+          <p className="text-xs text-slate-400 font-bold">
+            {isLogin ? "Need a vault?" : "Returning guardian?"}{' '}
+            <button onClick={() => setIsLogin(!isLogin)} className="text-indigo-600 font-black hover:underline ml-1">
+              {isLogin ? 'Register' : 'Login'}
+            </button>
+          </p>
         </div>
       </div>
+      
+      <style>{`
+        @keyframes bounce-slow {
+          0%, 100% { transform: translateY(-5%); }
+          50% { transform: translateY(0); }
+        }
+        .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
+      `}</style>
     </div>
   );
 };
