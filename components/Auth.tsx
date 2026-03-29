@@ -17,29 +17,14 @@ const Auth: React.FC<Props> = ({ onLogin, onGuestMode }) => {
   const [error, setError] = useState<string | null>(null);
   const [showSql, setShowSql] = useState(false);
 
-  // Mock Credentials for Demo Mode
-  const DEMO_EMAIL = 'admin@guardian.ai';
-  const DEMO_PASS = 'password123';
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     
-    // DEMO MODE if no supabase config
     if (!supabase) {
-      setTimeout(() => {
-        if (isLogin) {
-          if (email === DEMO_EMAIL && password === DEMO_PASS) {
-            onLogin({ email: DEMO_EMAIL, name: 'Guardian Admin' });
-          } else {
-            setError('Account not found. Use Demo: admin@guardian.ai / password123');
-          }
-        } else {
-          onLogin({ email, name: name || 'Explorer' });
-        }
-        setLoading(false);
-      }, 1000);
+      setError('Supabase connection not established. Check your configuration.');
+      setLoading(false);
       return;
     }
     
@@ -57,11 +42,19 @@ const Auth: React.FC<Props> = ({ onLogin, onGuestMode }) => {
         const { data, error: authError } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { name } },
+          options: { 
+            data: { name },
+            emailRedirectTo: window.location.origin
+          },
         });
         if (authError) throw authError;
         if (data.user) {
-          onLogin({ email: data.user.email || '', name });
+          // Supabase might require email confirmation depending on settings
+          if (data.session) {
+            onLogin({ email: data.user.email || '', name });
+          } else {
+            setError('Verification email sent! Please check your inbox.');
+          }
         }
       }
     } catch (err: any) {
@@ -89,16 +82,6 @@ const Auth: React.FC<Props> = ({ onLogin, onGuestMode }) => {
         </div>
 
         <div className="bg-white/80 backdrop-blur-3xl rounded-[3rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)] border border-white/60 p-10 overflow-hidden">
-          {!supabase && isLogin && (
-            <div className="mb-8 p-6 bg-indigo-50/50 rounded-3xl border border-indigo-100 flex flex-col items-center gap-4">
-              <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-white px-3 py-1 rounded-full shadow-sm">Demo Mode Active</span>
-              <div className="text-center">
-                <p className="text-[11px] font-bold text-slate-500 mb-1">Testing Credentials:</p>
-                <code className="text-[10px] font-black text-indigo-700 bg-white/50 px-2 py-1 rounded select-all">admin@guardian.ai / password123</code>
-              </div>
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && (
               <div className="space-y-2">
