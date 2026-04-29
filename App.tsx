@@ -7,7 +7,6 @@ import HealthDashboard from './components/HealthDashboard';
 import SymptomHelper from './components/SymptomHelper';
 import Reminders from './components/Reminders';
 import Auth from './components/Auth';
-import SqlEditor from './components/SqlEditor';
 import { supabase, db } from './services/supabase';
 
 const App: React.FC = () => {
@@ -139,7 +138,6 @@ const App: React.FC = () => {
     { id: AppTab.SYMPTOMS, label: 'Helper', icon: '🌡️' },
     { id: AppTab.MEDICINE, label: 'Scanner', icon: '📷' },
     { id: AppTab.SCHEDULES, label: 'Alerts', icon: '🔔' },
-    { id: AppTab.STUDIO, label: 'Setup', icon: '🛠️' },
   ];
 
   return (
@@ -187,7 +185,6 @@ const App: React.FC = () => {
           {activeTab === AppTab.DASHBOARD && <HealthDashboard history={history} />}
           {activeTab === AppTab.SYMPTOMS && <SymptomHelper />}
           {activeTab === AppTab.MEDICINE && <MedicineScanner />}
-          {activeTab === AppTab.STUDIO && <SqlEditor />}
           {activeTab === AppTab.SCHEDULES && (
             <Reminders 
               reminders={reminders} 
