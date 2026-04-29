@@ -27,11 +27,11 @@ const getAI = () => {
 };
 
 // Existing Health Services
-const MODEL_NAME = 'gemini-3.1-pro-preview';
+const MODEL_NAME = 'gemini-3-flash-preview';
 
 export const analyzeHealthCheckup = async (entry: HealthEntry): Promise<HealthAnalysis> => {
   const ai = getAI();
-  const prompt = `Perform a deep health habit analysis:
+  const prompt = `Perform a deep health habit analysis for today:
   - Sleep: ${entry.sleep}h
   - Water: ${entry.water} units
   - Stress: ${entry.stress}/10
@@ -39,18 +39,66 @@ export const analyzeHealthCheckup = async (entry: HealthEntry): Promise<HealthAn
   - Symptoms: ${entry.discomfort || "None"}
   - Nutrition: ${entry.foodQuality}
   
-  Provide a professional, supportive analysis without giving a medical diagnosis.`;
+  Provide a professional, supportive analysis. Be specific about correlations (e.g., how stress might be affecting sleep).`;
 
   const response = await ai.models.generateContent({
     model: MODEL_NAME,
     contents: prompt,
     config: {
-      systemInstruction: "You are the World-Class Health Guardian AI. Return JSON ONLY: {summary, possibleConcern, advice: string[], warning}. Use thinking to ensure cross-habit correlations.",
+      systemInstruction: "You are the World-Class Health Guardian AI. You must be precise, empathetic, and data-driven.",
       responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          summary: { type: Type.STRING },
+          possibleConcern: { type: Type.STRING },
+          advice: { type: Type.ARRAY, items: { type: Type.STRING } },
+          warning: { type: Type.STRING }
+        },
+        required: ["summary", "advice"]
+      }
     }
   });
 
   return parseAIResponse(response.text);
+};
+
+export const getHealthChatResponse = async (userQuery: string, history: HealthEntry[]): Promise<string> => {
+  const ai = getAI();
+  const historySummary = history.map(h => 
+    `Date: ${new Date(h.timestamp).toLocaleDateString()}, Sleep: ${h.sleep}h, Water: ${h.water}, Stress: ${h.stress}/10, Energy: ${h.energy}/10, Symptoms: ${h.discomfort}, Nutrition: ${h.foodQuality}`
+  ).join('\n');
+
+  const prompt = `User Context (Health History):\n${historySummary}\n\nUser Question: ${userQuery}\n\nAs the Health Guardian AI, provide a helpful, scientifically-informed (but non-medical) response based on the user's data and current medical knowledge. Do not apologize for not being a doctor, just provide the best advice possible within safety limits.`;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview', // Faster for chat
+    contents: prompt,
+    config: {
+      systemInstruction: "You are the World-Class Health Guardian AI Assistant. Be concise, professional, and reference the user's history if relevant. Keep it under 150 words.",
+    }
+  });
+
+  return response.text || "I'm sorry, I couldn't process that request at the moment.";
+};
+
+export const getWeeklySummary = async (history: HealthEntry[]): Promise<string> => {
+  if (history.length < 3) return "Continue logging for at least 3 days to unlock deep behavioral insights.";
+  
+  const ai = getAI();
+  const data = history.slice(0, 7).map(h => 
+    `S:${h.sleep} W:${h.water} St:${h.stress} E:${h.energy}`
+  ).join(' | ');
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Analyze these recent health trends and provide a 1-sentence powerful insight: ${data}`,
+    config: {
+      systemInstruction: "You are a brief, high-impact Health Analyst. One sentence maximum. Focus on the most significant correlation.",
+    }
+  });
+
+  return response.text || "Your vitality trends are stabilizing. Keep up the consistent logging.";
 };
 
 export const getSymptomAdvice = async (symptomQuery: string): Promise<SymptomAdvice> => {
@@ -59,8 +107,18 @@ export const getSymptomAdvice = async (symptomQuery: string): Promise<SymptomAdv
     model: MODEL_NAME,
     contents: `Symptom Query: ${symptomQuery}`,
     config: {
-      systemInstruction: "Provide safe, non-medical comfort advice for symptoms. Return JSON: {symptom, homeCare:[], whenToSeeDoctor:[], precautions}.",
+      systemInstruction: "Provide safe, non-medical comfort advice for symptoms.",
       responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          symptom: { type: Type.STRING },
+          homeCare: { type: Type.ARRAY, items: { type: Type.STRING } },
+          whenToSeeDoctor: { type: Type.ARRAY, items: { type: Type.STRING } },
+          precautions: { type: Type.STRING }
+        },
+        required: ["symptom", "homeCare", "whenToSeeDoctor", "precautions"]
+      }
     }
   });
 
@@ -79,8 +137,20 @@ export const scanMedicine = async (medicineName?: string, imageBase64?: string):
     model: MODEL_NAME,
     contents: { parts: [...parts, { text: "Explain usage and safety precautions for this medicine." }] },
     config: {
-      systemInstruction: "Provide medicine safety data. Return JSON: {name, usage, howToTake, sideEffects:[], precautions:[], safetyWarnings}.",
-      responseMimeType: "application/json"
+      systemInstruction: "Provide medicine safety data.",
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING },
+          usage: { type: Type.STRING },
+          howToTake: { type: Type.STRING },
+          sideEffects: { type: Type.ARRAY, items: { type: Type.STRING } },
+          precautions: { type: Type.ARRAY, items: { type: Type.STRING } },
+          safetyWarnings: { type: Type.STRING }
+        },
+        required: ["name", "usage", "howToTake", "safetyWarnings"]
+      }
     }
   });
 

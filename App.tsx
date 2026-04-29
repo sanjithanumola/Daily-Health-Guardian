@@ -1,11 +1,20 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { AppTab, HealthEntry, User, Reminder } from './types';
+import { 
+  Activity, 
+  MessageSquare, 
+  Thermometer, 
+  Camera, 
+  Bell, 
+  BookOpen
+} from 'lucide-react';
 import DailyCheckup from './components/DailyCheckup';
 import MedicineScanner from './components/MedicineScanner';
 import HealthDashboard from './components/HealthDashboard';
 import SymptomHelper from './components/SymptomHelper';
 import Reminders from './components/Reminders';
+import AIGuardianChat from './components/AIGuardianChat';
 import Auth from './components/Auth';
 import { supabase, db } from './services/supabase';
 
@@ -133,11 +142,12 @@ const App: React.FC = () => {
   }
 
   const navItems = [
-    { id: AppTab.CHECKUP, label: 'Journal', icon: '✍️' },
-    { id: AppTab.DASHBOARD, label: 'Vitality', icon: '⚡' },
-    { id: AppTab.SYMPTOMS, label: 'Helper', icon: '🌡️' },
-    { id: AppTab.MEDICINE, label: 'Scanner', icon: '📷' },
-    { id: AppTab.SCHEDULES, label: 'Alerts', icon: '🔔' },
+    { id: AppTab.CHECKUP, label: 'Journal', icon: <BookOpen size={20} /> },
+    { id: AppTab.DASHBOARD, label: 'Vitality', icon: <Activity size={20} /> },
+    { id: AppTab.CONSULT, label: 'Consult', icon: <MessageSquare size={20} /> },
+    { id: AppTab.SYMPTOMS, label: 'Helper', icon: <Thermometer size={20} /> },
+    { id: AppTab.MEDICINE, label: 'Scanner', icon: <Camera size={20} /> },
+    { id: AppTab.SCHEDULES, label: 'Alerts', icon: <Bell size={20} /> },
   ];
 
   return (
@@ -183,6 +193,7 @@ const App: React.FC = () => {
         <div className="animate-in fade-in slide-in-from-bottom-6 duration-1000">
           {activeTab === AppTab.CHECKUP && <DailyCheckup onComplete={addToHistory} />}
           {activeTab === AppTab.DASHBOARD && <HealthDashboard history={history} />}
+          {activeTab === AppTab.CONSULT && <AIGuardianChat history={history} />}
           {activeTab === AppTab.SYMPTOMS && <SymptomHelper />}
           {activeTab === AppTab.MEDICINE && <MedicineScanner />}
           {activeTab === AppTab.SCHEDULES && (
@@ -221,7 +232,7 @@ const App: React.FC = () => {
               onClick={() => setActiveTab(item.id)} 
               className={`flex-1 flex flex-col items-center gap-1.5 py-4 rounded-[1.8rem] transition-all ${activeTab === item.id ? 'bg-[#5E5CE6] text-white shadow-xl shadow-indigo-600/30 scale-105' : 'text-slate-400'}`}
             >
-              <span className="text-xl">{item.icon}</span>
+              <div className="text-xl mb-0.5">{item.icon}</div>
               <span className="text-[9px] font-black uppercase tracking-tighter">{item.label}</span>
             </button>
           ))}

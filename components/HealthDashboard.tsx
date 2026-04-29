@@ -1,6 +1,7 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { HealthEntry } from '../types';
+import { getWeeklySummary } from '../services/geminiService';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 interface Props {
@@ -8,6 +9,13 @@ interface Props {
 }
 
 const HealthDashboard: React.FC<Props> = ({ history }) => {
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (history.length >= 3) {
+      getWeeklySummary(history).then(setAiSummary).catch(console.error);
+    }
+  }, [history]);
   if (history.length === 0) {
     return (
       <div className="max-w-md mx-auto py-32 text-center animate-in fade-in duration-1000">
@@ -44,6 +52,12 @@ const HealthDashboard: React.FC<Props> = ({ history }) => {
   return (
     <div className="space-y-8 pb-10">
       {/* Premium Header Bento Grid */}
+      {aiSummary && (
+        <div className="bg-[#5E5CE6] text-white p-6 rounded-[2rem] shadow-xl shadow-indigo-100 flex items-center gap-6 animate-in slide-in-from-top-4 duration-1000">
+          <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl shrink-0">🧠</div>
+          <p className="text-sm font-black italic tracking-tight">"{aiSummary}"</p>
+        </div>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Vitality Hub Card */}
