@@ -82,6 +82,22 @@ const Auth: React.FC<Props> = ({ onLogin, onGuestMode }) => {
         </div>
 
         <div className="bg-white/80 backdrop-blur-3xl rounded-[3rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)] border border-white/60 p-10 overflow-hidden">
+          {/* Auth Tab Switcher */}
+          <div className="flex bg-slate-50 p-1.5 rounded-2xl mb-8 border border-slate-100">
+            <button 
+              onClick={() => setIsLogin(true)}
+              className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${isLogin ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              Sign In
+            </button>
+            <button 
+              onClick={() => setIsLogin(false)}
+              className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${!isLogin ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              Create Account
+            </button>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && (
               <div className="space-y-2">
