@@ -95,18 +95,18 @@ const AIGuardianChat: React.FC<Props> = ({ history }) => {
           <form onSubmit={handleSend} className="relative flex items-center">
             <input 
               type="text" 
-              placeholder="Ask anything about your health trends, sleep, or symptoms..."
+              placeholder="Ask anything about your health trends, sleep, medications, or symptoms..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={loading}
-              className="w-full pl-6 pr-16 py-4.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-[2rem] focus:ring-4 focus:ring-indigo-500/10 focus:border-[#5E5CE6] outline-none transition-all font-bold text-slate-800 dark:text-slate-100 text-sm"
+              className="w-full pl-7 pr-20 py-5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-[2.2rem] focus:ring-4 focus:ring-indigo-500/10 focus:border-[#5E5CE6] outline-none transition-all font-bold text-slate-800 dark:text-slate-100 text-base sm:text-lg shadow-inner placeholder:text-slate-400 dark:placeholder:text-slate-500"
             />
             <button 
               type="submit"
               disabled={loading || !input.trim()}
-              className="absolute right-2.5 w-11 h-11 bg-[#5E5CE6] text-white rounded-full flex items-center justify-center hover:bg-indigo-700 transition-all shadow-md shadow-indigo-500/20 disabled:opacity-40 disabled:hover:bg-[#5E5CE6]"
+              className="absolute right-3 w-13 h-13 sm:w-14 sm:h-14 bg-[#5E5CE6] text-white rounded-full flex items-center justify-center hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-40 disabled:hover:bg-[#5E5CE6] active:scale-95"
             >
-              <Send size={18} />
+              <Send size={20} />
             </button>
           </form>
         </div>

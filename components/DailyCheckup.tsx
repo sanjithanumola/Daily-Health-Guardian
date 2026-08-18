@@ -215,10 +215,11 @@ const DailyCheckup: React.FC<Props> = ({ onComplete }) => {
             ))}
           </div>
           <textarea 
-            placeholder="Type any symptoms or discomforts here..."
+            placeholder="Type any symptoms, aches, fatigue, or health discomforts here in detail..."
             value={entry.discomfort}
             onChange={(e) => setEntry({ ...entry, discomfort: e.target.value })}
-            className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-3xl px-6 py-5 focus:ring-2 focus:ring-[#5E5CE6] outline-none transition-all min-h-[140px] text-slate-800 dark:text-slate-100 font-medium"
+            rows={6}
+            className="w-full bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 sm:p-7 focus:ring-4 focus:ring-indigo-500/10 focus:border-[#5E5CE6] outline-none transition-all min-h-[190px] sm:min-h-[220px] text-slate-800 dark:text-slate-100 font-medium text-base sm:text-lg leading-relaxed resize-y placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-inner"
           />
         </section>
 

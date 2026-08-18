@@ -271,10 +271,10 @@ const Reminders: React.FC<Props> = ({
                 <input 
                   type="text"
                   required
-                  placeholder="e.g. Morning Vitamin D, Drink Water, Sleep Log"
+                  placeholder="e.g. Morning Vitamin D, Drink Water, Sleep Log..."
                   value={formLabel}
                   onChange={e => setFormLabel(e.target.value)}
-                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-[#5E5CE6] font-bold text-slate-800 dark:text-slate-100"
+                  className="w-full px-6 py-4.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-[#5E5CE6] font-bold text-slate-800 dark:text-slate-100 text-base shadow-inner placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 />
               </div>
 

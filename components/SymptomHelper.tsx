@@ -62,18 +62,18 @@ const SymptomHelper: React.FC = () => {
           <form onSubmit={(e) => { e.preventDefault(); handleSearch(query); }} className="relative w-full">
             <input 
               type="text" 
-              placeholder="How are you feeling today?"
+              placeholder="Describe what you're experiencing (e.g. throbbing headache, tight cough)..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               disabled={loading}
-              className="w-full pl-6 pr-32 py-4.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-[2rem] focus:ring-4 focus:ring-indigo-500/10 focus:border-[#5E5CE6] outline-none transition-all font-bold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 text-sm"
+              className="w-full pl-7 pr-36 py-5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-[2.2rem] focus:ring-4 focus:ring-indigo-500/10 focus:border-[#5E5CE6] outline-none transition-all font-bold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-base sm:text-lg shadow-inner"
             />
             <button 
               type="submit"
               disabled={loading || !query.trim()}
-              className="absolute right-2.5 top-2.5 bottom-2.5 px-6 bg-[#5E5CE6] text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 active:scale-95 flex items-center gap-1.5"
+              className="absolute right-3 top-2.5 bottom-2.5 px-7 bg-[#5E5CE6] text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 active:scale-95 flex items-center gap-2"
             >
-              <Search size={14} />
+              <Search size={16} />
               <span>Analyze</span>
             </button>
           </form>

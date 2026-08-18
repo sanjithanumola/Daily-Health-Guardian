@@ -119,7 +119,7 @@ const Auth: React.FC<Props> = ({ onLogin, onGuestMode }) => {
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Display Name</label>
                 <input 
                   type="text" required value={name} onChange={(e) => setName(e.target.value)}
-                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-[#5E5CE6] outline-none transition-all font-bold text-slate-800 dark:text-slate-100 text-sm"
+                  className="w-full px-6 py-4.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-[#5E5CE6] outline-none transition-all font-bold text-slate-800 dark:text-slate-100 text-base shadow-inner"
                   placeholder="John Doe"
                 />
               </div>
@@ -129,7 +129,7 @@ const Auth: React.FC<Props> = ({ onLogin, onGuestMode }) => {
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Email Identity</label>
               <input 
                 type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-[#5E5CE6] outline-none transition-all font-bold text-slate-800 dark:text-slate-100 text-sm"
+                className="w-full px-6 py-4.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-[#5E5CE6] outline-none transition-all font-bold text-slate-800 dark:text-slate-100 text-base shadow-inner"
                 placeholder="name@email.com"
               />
             </div>
@@ -138,7 +138,7 @@ const Auth: React.FC<Props> = ({ onLogin, onGuestMode }) => {
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Access Key</label>
               <input 
                 type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-[#5E5CE6] outline-none transition-all font-bold text-slate-800 dark:text-slate-100 text-sm"
+                className="w-full px-6 py-4.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-[#5E5CE6] outline-none transition-all font-bold text-slate-800 dark:text-slate-100 text-base shadow-inner"
                 placeholder="••••••••"
               />
             </div>
