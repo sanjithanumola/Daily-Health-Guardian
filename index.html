@@ -8,6 +8,16 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              brand: '#5E5CE6',
+            }
+          }
+        }
+      };
       window.process = window.process || { env: {} };
       
       // Global Error Capture for Sandbox Stability

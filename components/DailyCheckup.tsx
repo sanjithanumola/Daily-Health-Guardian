@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { HealthEntry, HealthAnalysis } from '../types';
 import { analyzeHealthCheckup } from '../services/geminiService';
+import { Sparkles, AlertTriangle, CheckCircle2, Moon, Sun } from 'lucide-react';
 
 interface Props {
   onComplete: (entry: HealthEntry) => void;
@@ -51,32 +51,30 @@ const DailyCheckup: React.FC<Props> = ({ onComplete }) => {
   if (analysis) {
     return (
       <div className="space-y-6 animate-in fade-in duration-500">
-        <div className="bg-white rounded-[3rem] p-8 md:p-12 shadow-sm border border-slate-100">
+        <div className="bg-white dark:bg-slate-800 rounded-[3rem] p-8 md:p-12 shadow-sm border border-slate-200/80 dark:border-slate-700/80">
           <div className="flex items-center gap-5 mb-10">
-            <div className="w-16 h-16 bg-emerald-100 rounded-[1.5rem] flex items-center justify-center text-emerald-600">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+            <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/60 rounded-[1.5rem] flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 size={32} />
             </div>
             <div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Today's Insight</h2>
+              <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Today's Insight</h2>
               <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">Guardian AI Analysis</p>
             </div>
           </div>
 
-          <div className="bg-indigo-50 p-8 rounded-[2rem] border border-indigo-100/50 mb-10">
-            <p className="text-xl text-indigo-900 leading-relaxed font-bold italic">
+          <div className="bg-indigo-50 dark:bg-indigo-950/40 p-8 rounded-[2rem] border border-indigo-100/50 dark:border-indigo-800/40 mb-10">
+            <p className="text-xl text-indigo-950 dark:text-indigo-200 leading-relaxed font-bold italic">
               "{analysis.summary}"
             </p>
           </div>
 
           <div className="grid gap-8 mb-10">
             {analysis.possibleConcern && (
-              <div className="bg-amber-50 border border-amber-100/50 rounded-2xl p-6 flex gap-4">
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 rounded-2xl p-6 flex gap-4">
                 <div className="text-2xl shrink-0">💡</div>
                 <div>
-                  <h3 className="text-[10px] font-black text-amber-800 uppercase tracking-widest mb-1">Observation</h3>
-                  <p className="text-amber-900 text-sm font-semibold">{analysis.possibleConcern}</p>
+                  <h3 className="text-[10px] font-black text-amber-800 dark:text-amber-400 uppercase tracking-widest mb-1">Observation</h3>
+                  <p className="text-amber-900 dark:text-amber-200 text-sm font-semibold">{analysis.possibleConcern}</p>
                 </div>
               </div>
             )}
@@ -85,9 +83,9 @@ const DailyCheckup: React.FC<Props> = ({ onComplete }) => {
               <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest px-2">Health Recommendations</h3>
               <div className="grid gap-3 sm:grid-cols-2">
                 {analysis.advice.map((item, i) => (
-                  <div key={i} className="flex items-center gap-4 bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                    <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center text-indigo-600 font-black text-xs shadow-sm shrink-0">{i+1}</div>
-                    <span className="text-slate-700 text-sm font-bold">{item}</span>
+                  <div key={i} className="flex items-center gap-4 bg-slate-50 dark:bg-slate-900/60 p-5 rounded-2xl border border-slate-200/60 dark:border-slate-700/60">
+                    <div className="w-8 h-8 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center text-[#5E5CE6] dark:text-indigo-400 font-black text-xs shadow-sm shrink-0">{i+1}</div>
+                    <span className="text-slate-700 dark:text-slate-200 text-sm font-bold">{item}</span>
                   </div>
                 ))}
               </div>
@@ -95,17 +93,17 @@ const DailyCheckup: React.FC<Props> = ({ onComplete }) => {
           </div>
 
           {analysis.warning && (
-            <div className="bg-rose-50 border border-rose-100 rounded-2xl p-6 mb-10">
-              <div className="flex items-center gap-2 text-rose-700 font-black text-[10px] uppercase tracking-widest mb-3">
-                <span className="text-lg">⚠️</span> Important Precaution
+            <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-800/40 rounded-2xl p-6 mb-10">
+              <div className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-black text-[10px] uppercase tracking-widest mb-3">
+                <AlertTriangle size={16} /> Important Precaution
               </div>
-              <p className="text-rose-900 text-sm font-semibold leading-relaxed">{analysis.warning}</p>
+              <p className="text-rose-900 dark:text-rose-200 text-sm font-semibold leading-relaxed">{analysis.warning}</p>
             </div>
           )}
 
           <button 
             onClick={() => setAnalysis(null)}
-            className="w-full py-5 bg-slate-900 text-white font-black uppercase tracking-[0.15em] rounded-2xl hover:bg-slate-800 transition-all active:scale-[0.98]"
+            className="w-full py-5 bg-[#5E5CE6] text-white font-black uppercase tracking-[0.15em] rounded-2xl hover:bg-indigo-700 transition-all active:scale-[0.98] shadow-lg shadow-indigo-500/20"
           >
             Start New Checkup
           </button>
@@ -117,23 +115,23 @@ const DailyCheckup: React.FC<Props> = ({ onComplete }) => {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="text-center mb-10">
-        <h2 className="text-3xl font-black text-slate-900 mb-2">Daily Checkup</h2>
-        <p className="text-slate-500 font-bold italic">Your health is your greatest wealth.</p>
+        <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2">Daily Checkup</h2>
+        <p className="text-slate-500 dark:text-slate-400 font-bold italic">Your health is your greatest wealth.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-10 bg-white p-8 md:p-12 rounded-[2.5rem] shadow-sm border border-slate-100">
+      <form onSubmit={handleSubmit} className="space-y-10 bg-white dark:bg-slate-800 p-8 md:p-12 rounded-[2.5rem] shadow-sm border border-slate-200/80 dark:border-slate-700/80">
         <div className="grid md:grid-cols-2 gap-10">
           {/* Sleep */}
           <section className="space-y-4">
             <div className="flex justify-between items-end">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sleep Quality</label>
-              <span className="text-indigo-600 font-black text-xl">{entry.sleep}h</span>
+              <span className="text-[#5E5CE6] dark:text-indigo-400 font-black text-xl">{entry.sleep}h</span>
             </div>
             <input 
               type="range" min="0" max="15" step="0.5"
               value={entry.sleep}
               onChange={(e) => setEntry({ ...entry, sleep: parseFloat(e.target.value) })}
-              className="w-full h-1.5 bg-slate-100 rounded-full appearance-none accent-indigo-600"
+              className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full appearance-none accent-[#5E5CE6]"
             />
           </section>
 
@@ -141,13 +139,13 @@ const DailyCheckup: React.FC<Props> = ({ onComplete }) => {
           <section className="space-y-4">
             <div className="flex justify-between items-end">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hydration</label>
-              <span className="text-indigo-600 font-black text-xl">{entry.water} <small className="text-[10px]">units</small></span>
+              <span className="text-[#5E5CE6] dark:text-indigo-400 font-black text-xl">{entry.water} <small className="text-[10px]">units</small></span>
             </div>
             <input 
               type="range" min="0" max="15"
               value={entry.water}
               onChange={(e) => setEntry({ ...entry, water: parseInt(e.target.value) })}
-              className="w-full h-1.5 bg-slate-100 rounded-full appearance-none accent-indigo-600"
+              className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full appearance-none accent-[#5E5CE6]"
             />
           </section>
 
@@ -155,13 +153,13 @@ const DailyCheckup: React.FC<Props> = ({ onComplete }) => {
           <section className="space-y-4">
             <div className="flex justify-between items-end">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Stress Level</label>
-              <span className="text-rose-500 font-black text-xl">{entry.stress}/10</span>
+              <span className="text-rose-500 dark:text-rose-400 font-black text-xl">{entry.stress}/10</span>
             </div>
             <input 
               type="range" min="1" max="10"
               value={entry.stress}
               onChange={(e) => setEntry({ ...entry, stress: parseInt(e.target.value) })}
-              className="w-full h-1.5 bg-slate-100 rounded-full appearance-none accent-rose-500"
+              className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full appearance-none accent-rose-500"
             />
           </section>
 
@@ -169,13 +167,13 @@ const DailyCheckup: React.FC<Props> = ({ onComplete }) => {
           <section className="space-y-4">
             <div className="flex justify-between items-end">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Energy Level</label>
-              <span className="text-emerald-500 font-black text-xl">{entry.energy}/10</span>
+              <span className="text-emerald-500 dark:text-emerald-400 font-black text-xl">{entry.energy}/10</span>
             </div>
             <input 
               type="range" min="1" max="10"
               value={entry.energy}
               onChange={(e) => setEntry({ ...entry, energy: parseInt(e.target.value) })}
-              className="w-full h-1.5 bg-slate-100 rounded-full appearance-none accent-emerald-500"
+              className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full appearance-none accent-emerald-500"
             />
           </section>
         </div>
@@ -189,7 +187,11 @@ const DailyCheckup: React.FC<Props> = ({ onComplete }) => {
                 key={type}
                 type="button"
                 onClick={() => setEntry({ ...entry, foodQuality: type })}
-                className={`py-4 px-2 text-[10px] font-black uppercase tracking-tight rounded-2xl border transition-all ${entry.foodQuality === type ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-slate-50 border-slate-100 text-slate-400 hover:bg-slate-100'}`}
+                className={`py-4 px-2 text-[10px] font-black uppercase tracking-tight rounded-2xl border transition-all ${
+                  entry.foodQuality === type 
+                    ? 'bg-[#5E5CE6] border-[#5E5CE6] text-white shadow-lg shadow-indigo-500/20' 
+                    : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200/80 dark:border-slate-700/80 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900'
+                }`}
               >
                 {type}
               </button>
@@ -206,7 +208,7 @@ const DailyCheckup: React.FC<Props> = ({ onComplete }) => {
                 key={sym}
                 type="button"
                 onClick={() => handleSymptomClick(sym)}
-                className="px-4 py-1.5 bg-slate-50 text-slate-500 text-[10px] font-black uppercase tracking-wider rounded-full border border-slate-100 hover:bg-slate-100"
+                className="px-4 py-1.5 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 text-[10px] font-black uppercase tracking-wider rounded-full border border-slate-200 dark:border-slate-700 hover:border-[#5E5CE6]"
               >
                 + {sym}
               </button>
@@ -216,20 +218,21 @@ const DailyCheckup: React.FC<Props> = ({ onComplete }) => {
             placeholder="Type any symptoms or discomforts here..."
             value={entry.discomfort}
             onChange={(e) => setEntry({ ...entry, discomfort: e.target.value })}
-            className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-6 py-5 focus:ring-2 focus:ring-indigo-500 outline-none transition-all min-h-[140px] text-slate-700 font-medium"
+            className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-3xl px-6 py-5 focus:ring-2 focus:ring-[#5E5CE6] outline-none transition-all min-h-[140px] text-slate-800 dark:text-slate-100 font-medium"
           />
         </section>
 
         {error && (
-          <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600 text-sm font-bold flex items-center gap-3">
-            <span>⚠️</span> {error}
+          <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-2xl text-rose-600 dark:text-rose-400 text-sm font-bold flex items-center gap-3">
+            <AlertTriangle size={18} />
+            <span>{error}</span>
           </div>
         )}
 
         <button 
           type="submit"
           disabled={loading}
-          className="w-full py-6 bg-indigo-600 text-white font-black uppercase tracking-[0.2em] rounded-3xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center justify-center gap-3 active:scale-[0.98]"
+          className="w-full py-6 bg-[#5E5CE6] text-white font-black uppercase tracking-[0.2em] rounded-3xl shadow-xl shadow-indigo-500/20 hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center justify-center gap-3 active:scale-[0.98]"
         >
           {loading ? (
             <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
